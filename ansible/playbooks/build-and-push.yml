@@ -1,0 +1,88 @@
+---
+- name: Build and Push Docker Images for HMS Application
+  hosts: localhost
+  connection: local
+  vars:
+    docker_username: "nokesh14"
+    backend_image: "{{ docker_username }}/hms-backend:latest"
+    frontend_image: "{{ docker_username }}/hms-frontend:latest"
+    project_root: "{{ playbook_dir | dirname }}"
+
+  tasks:
+    - name: Check if Docker is installed
+      command: docker --version
+      register: docker_version
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if Docker is not installed
+      fail:
+        msg: "Docker is not installed. Please install Docker first."
+      when: docker_version.rc != 0
+
+    - name: Display Docker version
+      debug:
+        msg: "{{ docker_version.stdout }}"
+
+    - name: Check if logged into Docker Hub
+      command: docker info
+      register: docker_info
+      changed_when: false
+      failed_when: false
+
+    - name: Get absolute project root path
+      ansible.builtin.set_fact:
+        abs_project_root: "{{ playbook_dir | dirname | dirname }}"
+
+    - name: Build Backend Docker Image
+      ansible.builtin.shell: |
+        cd "{{ abs_project_root }}/backend"
+        docker build -t {{ backend_image }} .
+      register: backend_build
+      changed_when: true
+
+    - name: Display Backend build result
+      ansible.builtin.debug:
+        msg: "Backend image built successfully: {{ backend_image }}"
+
+    - name: Build Frontend Docker Image
+      ansible.builtin.shell: |
+        cd "{{ abs_project_root }}/frontend"
+        docker build -t {{ frontend_image }} .
+      register: frontend_build
+      changed_when: true
+
+    - name: Display Frontend build result
+      ansible.builtin.debug:
+        msg: "Frontend image built successfully: {{ frontend_image }}"
+
+    - name: Push Backend Image to Docker Hub
+      ansible.builtin.command:
+        cmd: docker push {{ backend_image }}
+      register: backend_push
+      changed_when: true
+
+    - name: Display Backend push result
+      ansible.builtin.debug:
+        msg: "Backend image pushed successfully to Docker Hub"
+
+    - name: Push Frontend Image to Docker Hub
+      ansible.builtin.command:
+        cmd: docker push {{ frontend_image }}
+      register: frontend_push
+      changed_when: true
+
+    - name: Display Frontend push result
+      ansible.builtin.debug:
+        msg: "Frontend image pushed successfully to Docker Hub"
+
+    - name: Summary
+      debug:
+        msg:
+          - "=========================================="
+          - "Docker Images Built and Pushed Successfully!"
+          - "=========================================="
+          - "Backend: {{ backend_image }}"
+          - "Frontend: {{ frontend_image }}"
+          - "=========================================="
+

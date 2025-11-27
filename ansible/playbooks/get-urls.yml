@@ -1,0 +1,111 @@
+---
+- name: Get HMS Application URLs
+  hosts: localhost
+  connection: local
+  vars:
+    namespace: "hms"
+
+  tasks:
+    - name: Check if kubectl is installed
+      ansible.builtin.command:
+        cmd: kubectl version --client
+      register: kubectl_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if kubectl is not installed
+      ansible.builtin.fail:
+        msg: "kubectl is not installed. Please install kubectl first."
+      when: kubectl_check.rc != 0
+
+    - name: Get Frontend Service Information
+      ansible.builtin.command:
+        cmd: kubectl get service hms-frontend-service -n {{ namespace }} -o json
+      register: frontend_service
+      changed_when: false
+      failed_when: false
+
+    - name: Get Backend Service Information
+      ansible.builtin.command:
+        cmd: kubectl get service hms-backend-service -n {{ namespace }} -o json
+      register: backend_service
+      changed_when: false
+      failed_when: false
+
+    - name: Parse Frontend Service JSON
+      ansible.builtin.set_fact:
+        frontend_data: "{{ frontend_service.stdout | from_json }}"
+      when: frontend_service.rc == 0
+
+    - name: Parse Backend Service JSON
+      ansible.builtin.set_fact:
+        backend_data: "{{ backend_service.stdout | from_json }}"
+      when: backend_service.rc == 0
+
+    - name: Extract Frontend URL
+      ansible.builtin.set_fact:
+        frontend_url: >-
+          {% if frontend_data.status.loadBalancer.ingress is defined and frontend_data.status.loadBalancer.ingress | length > 0 %}
+            http://{{ frontend_data.status.loadBalancer.ingress[0].hostname or frontend_data.status.loadBalancer.ingress[0].ip }}
+          {% elif frontend_data.spec.type == "NodePort" %}
+            http://localhost:{{ frontend_data.spec.ports[0].nodePort }}
+          {% elif frontend_data.spec.type == "LoadBalancer" and frontend_data.status.loadBalancer.ingress is defined %}
+            http://{{ frontend_data.status.loadBalancer.ingress[0].hostname or frontend_data.status.loadBalancer.ingress[0].ip }}
+          {% else %}
+            http://localhost:3000 (use port-forward)
+          {% endif %}
+      when: frontend_service.rc == 0
+
+    - name: Extract Backend URL
+      ansible.builtin.set_fact:
+        backend_url: >-
+          {% if backend_data.spec.type == "NodePort" %}
+            http://localhost:{{ backend_data.spec.ports[0].nodePort }}
+          {% elif backend_data.spec.type == "LoadBalancer" and backend_data.status.loadBalancer.ingress is defined and backend_data.status.loadBalancer.ingress | length > 0 %}
+            http://{{ backend_data.status.loadBalancer.ingress[0].hostname or backend_data.status.loadBalancer.ingress[0].ip }}:{{ backend_data.spec.ports[0].port }}
+          {% else %}
+            http://localhost:8081 (use port-forward)
+          {% endif %}
+      when: backend_service.rc == 0
+
+    - name: Get Port Forward Commands
+      ansible.builtin.set_fact:
+        port_forward_commands:
+          frontend: "kubectl port-forward service/hms-frontend-service 3000:80 -n {{ namespace }}"
+          backend: "kubectl port-forward service/hms-backend-service 8081:8081 -n {{ namespace }}"
+
+    - name: Display Application URLs
+      ansible.builtin.debug:
+        msg:
+          - "=========================================="
+          - "HMS Application URLs"
+          - "=========================================="
+          - ""
+          - "Frontend URL: {{ frontend_url | default('Service not found') }}"
+          - "Backend URL: {{ backend_url | default('Service not found') }}"
+          - ""
+          - "Port Forward Commands:"
+          - "  Frontend: {{ port_forward_commands.frontend }}"
+          - "  Backend: {{ port_forward_commands.backend }}"
+          - ""
+          - "To set up port forwarding, run:"
+          - "  {{ port_forward_commands.frontend }} &"
+          - "  {{ port_forward_commands.backend }} &"
+          - ""
+          - "Then access:"
+          - "  Frontend: http://localhost:3000"
+          - "  Backend: http://localhost:8081"
+          - "=========================================="
+
+    - name: Get Service Details
+      ansible.builtin.command:
+        cmd: kubectl get services -n {{ namespace }}
+      register: all_services
+      changed_when: false
+      failed_when: false
+
+    - name: Display All Services
+      ansible.builtin.debug:
+        msg: "{{ all_services.stdout_lines }}"
+      when: all_services.rc == 0
+

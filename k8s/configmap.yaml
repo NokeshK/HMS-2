@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hms-config
+data:
+  database-url: "jdbc:mysql://mysql-service:3306/hms_db?createDatabaseIfNotExist=true"
+  cors-allowed-origins: "http://hms-frontend-service,http://localhost"
+
+

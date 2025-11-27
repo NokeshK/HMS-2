@@ -1,0 +1,35 @@
+/* Tailwind CSS directives */
+/* stylelint-disable-next-line at-rule-no-unknown */
+@tailwind base;
+/* stylelint-disable-next-line at-rule-no-unknown */
+@tailwind components;
+/* stylelint-disable-next-line at-rule-no-unknown */
+@tailwind utilities;
+
+/* Custom styles can be added below */
+@layer base {
+  body {
+    @apply bg-gray-50 dark:bg-gray-900;
+  }
+}
+
+/* Heartbeat animation for logo */
+@keyframes hb-move {
+  0% { transform: translateX(-10%); }
+  100% { transform: translateX(10%); }
+}
+
+@keyframes hb-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+svg .hb-wave {
+  animation: hb-move 2s ease-in-out infinite alternate;
+}
+
+svg .hb-dot {
+  transform-origin: 60px 20px; /* near center path */
+  transform-box: fill-box;
+  animation: hb-pulse 1.2s ease-in-out infinite;
+}

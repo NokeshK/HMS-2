@@ -1,0 +1,378 @@
+---
+- name: Deploy HMS Application to Kubernetes
+  hosts: localhost
+  connection: local
+  vars:
+    namespace: "hms"
+    docker_username: "nokesh14"
+    backend_image: "{{ docker_username }}/hms-backend:latest"
+    frontend_image: "{{ docker_username }}/hms-frontend:latest"
+
+  tasks:
+    - name: Check if kubectl is installed
+      command: kubectl version --client
+      register: kubectl_version
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if kubectl is not installed
+      fail:
+        msg: "kubectl is not installed. Please install kubectl first."
+      when: kubectl_version.rc != 0
+
+    - name: Display kubectl version
+      debug:
+        msg: "{{ kubectl_version.stdout_lines[0] }}"
+
+    - name: Check if Kubernetes cluster is accessible
+      command: kubectl cluster-info
+      register: cluster_info
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if cluster is not accessible
+      fail:
+        msg: "Cannot connect to Kubernetes cluster. Please check your kubeconfig."
+      when: cluster_info.rc != 0
+
+    - name: Create namespace
+      ansible.builtin.command:
+        cmd: kubectl create namespace {{ namespace }} --dry-run=client -o yaml | kubectl apply -f -
+      register: namespace_result
+      changed_when: true
+
+    - name: Create ConfigMap
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: hms-config
+            namespace: "{{ namespace }}"
+          data:
+            database-url: "jdbc:mysql://mysql-service:3306/hms_db?createDatabaseIfNotExist=true"
+            cors-allowed-origins: "http://hms-frontend-service,http://localhost"
+
+    - name: Create Secrets
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: hms-secrets
+            namespace: "{{ namespace }}"
+          type: Opaque
+          stringData:
+            db-username: "root"
+            db-password: "hthe1234567"
+            jwt-secret: "mySuperSecretKeyThatIsAtLeast32CharactersLongForJWT"
+
+    - name: Deploy MySQL with PersistentVolumeClaim
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: mysql
+            namespace: "{{ namespace }}"
+            labels:
+              app: mysql
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: mysql
+            template:
+              metadata:
+                labels:
+                  app: mysql
+              spec:
+                containers:
+                - name: mysql
+                  image: mysql:8.0
+                  ports:
+                  - containerPort: 3306
+                  env:
+                  - name: MYSQL_ROOT_PASSWORD
+                    valueFrom:
+                      secretKeyRef:
+                        name: hms-secrets
+                        key: db-password
+                  - name: MYSQL_DATABASE
+                    value: "hms_db"
+                  volumeMounts:
+                  - name: mysql-storage
+                    mountPath: /var/lib/mysql
+                  resources:
+                    requests:
+                      memory: "512Mi"
+                      cpu: "250m"
+                    limits:
+                      memory: "1Gi"
+                      cpu: "500m"
+                volumes:
+                - name: mysql-storage
+                  persistentVolumeClaim:
+                    claimName: mysql-pvc
+
+    - name: Create MySQL Service
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: mysql-service
+            namespace: "{{ namespace }}"
+            labels:
+              app: mysql
+          spec:
+            type: ClusterIP
+            ports:
+            - port: 3306
+              targetPort: 3306
+              protocol: TCP
+              name: mysql
+            selector:
+              app: mysql
+
+    - name: Create MySQL PersistentVolumeClaim
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: mysql-pvc
+            namespace: "{{ namespace }}"
+          spec:
+            accessModes:
+            - ReadWriteOnce
+            resources:
+              requests:
+                storage: 5Gi
+
+    - name: Wait for MySQL to be ready
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: "{{ namespace }}"
+        label_selectors:
+          - app = mysql
+      register: mysql_pods
+      until: mysql_pods.resources | selectattr('status.phase', 'equalto', 'Running') | list | length > 0
+      retries: 30
+      delay: 10
+
+    - name: Deploy Backend
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: hms-backend
+            namespace: "{{ namespace }}"
+            labels:
+              app: hms-backend
+          spec:
+            replicas: 2
+            selector:
+              matchLabels:
+                app: hms-backend
+            template:
+              metadata:
+                labels:
+                  app: hms-backend
+              spec:
+                containers:
+                - name: backend
+                  image: "{{ backend_image }}"
+                  ports:
+                  - containerPort: 8081
+                  env:
+                  - name: DATABASE_URL
+                    valueFrom:
+                      configMapKeyRef:
+                        name: hms-config
+                        key: database-url
+                  - name: DB_USERNAME
+                    valueFrom:
+                      secretKeyRef:
+                        name: hms-secrets
+                        key: db-username
+                  - name: DB_PASSWORD
+                    valueFrom:
+                      secretKeyRef:
+                        name: hms-secrets
+                        key: db-password
+                  - name: JWT_SECRET
+                    valueFrom:
+                      secretKeyRef:
+                        name: hms-secrets
+                        key: jwt-secret
+                  - name: PORT
+                    value: "8081"
+                  - name: CORS_ALLOWED_ORIGINS
+                    valueFrom:
+                      configMapKeyRef:
+                        name: hms-config
+                        key: cors-allowed-origins
+                  resources:
+                    requests:
+                      memory: "512Mi"
+                      cpu: "250m"
+                    limits:
+                      memory: "1Gi"
+                      cpu: "500m"
+                  livenessProbe:
+                    tcpSocket:
+                      port: 8081
+                    initialDelaySeconds: 60
+                    periodSeconds: 10
+                    failureThreshold: 3
+                  readinessProbe:
+                    tcpSocket:
+                      port: 8081
+                    initialDelaySeconds: 30
+                    periodSeconds: 5
+
+    - name: Create Backend Service
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: hms-backend-service
+            namespace: "{{ namespace }}"
+            labels:
+              app: hms-backend
+          spec:
+            type: ClusterIP
+            ports:
+            - port: 8081
+              targetPort: 8081
+              protocol: TCP
+              name: http
+            selector:
+              app: hms-backend
+
+    - name: Deploy Frontend
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: hms-frontend
+            namespace: "{{ namespace }}"
+            labels:
+              app: hms-frontend
+          spec:
+            replicas: 2
+            selector:
+              matchLabels:
+                app: hms-frontend
+            template:
+              metadata:
+                labels:
+                  app: hms-frontend
+              spec:
+                containers:
+                - name: frontend
+                  image: "{{ frontend_image }}"
+                  ports:
+                  - containerPort: 80
+                  resources:
+                    requests:
+                      memory: "128Mi"
+                      cpu: "100m"
+                    limits:
+                      memory: "256Mi"
+                      cpu: "200m"
+                  livenessProbe:
+                    httpGet:
+                      path: /
+                      port: 80
+                    initialDelaySeconds: 30
+                    periodSeconds: 10
+                  readinessProbe:
+                    httpGet:
+                      path: /
+                      port: 80
+                    initialDelaySeconds: 10
+                    periodSeconds: 5
+
+    - name: Create Frontend Service
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: hms-frontend-service
+            namespace: "{{ namespace }}"
+            labels:
+              app: hms-frontend
+          spec:
+            type: LoadBalancer
+            ports:
+            - port: 80
+              targetPort: 80
+              protocol: TCP
+              name: http
+            selector:
+              app: hms-frontend
+
+    - name: Wait for deployments to be ready
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        namespace: "{{ namespace }}"
+      register: deployments
+      until: deployments.resources | selectattr('status.readyReplicas', 'defined') | list | length == 3
+      retries: 30
+      delay: 10
+
+    - name: Get pod status
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: "{{ namespace }}"
+      register: pods
+
+    - name: Display pod status
+      debug:
+        msg: "{{ item.metadata.name }}: {{ item.status.phase }}"
+      loop: "{{ pods.resources }}"
+
+    - name: Get service information
+      kubernetes.core.k8s_info:
+        kind: Service
+        namespace: "{{ namespace }}"
+      register: services
+
+    - name: Display service information
+      debug:
+        msg: "{{ item.metadata.name }}: {{ item.spec.type }} - {{ item.spec.ports[0].port if item.spec.ports | length > 0 else 'N/A' }}"
+      loop: "{{ services.resources }}"
+
+    - name: Deployment Summary
+      debug:
+        msg:
+          - "=========================================="
+          - "HMS Application Deployed Successfully!"
+          - "=========================================="
+          - "Namespace: {{ namespace }}"
+          - "Backend Image: {{ backend_image }}"
+          - "Frontend Image: {{ frontend_image }}"
+          - ""
+          - "To access the application:"
+          - "  Frontend: kubectl port-forward service/hms-frontend-service 3000:80 -n {{ namespace }}"
+          - "  Backend: kubectl port-forward service/hms-backend-service 8081:8081 -n {{ namespace }}"
+          - ""
+          - "Or check LoadBalancer:"
+          - "  kubectl get service hms-frontend-service -n {{ namespace }}"
+          - "=========================================="
+

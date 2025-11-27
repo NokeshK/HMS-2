@@ -1,0 +1,34 @@
+---
+- name: Build and Push Docker Images
+  ansible.builtin.import_playbook: build-and-push.yml
+  vars:
+    docker_username: "nokesh14"
+
+- name: Deploy to Kubernetes
+  ansible.builtin.import_playbook: deploy-k8s.yml
+  vars:
+    docker_username: "nokesh14"
+    namespace: "hms"
+
+- name: Deployment Summary
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Final Summary
+      ansible.builtin.debug:
+        msg:
+          - "=========================================="
+          - "Complete Deployment Finished!"
+          - "=========================================="
+          - "All services are deployed and running."
+          - ""
+          - "Next steps:"
+          - "1. Set up port forwarding:"
+          - "   kubectl port-forward service/hms-frontend-service 3000:80 -n hms &"
+          - "   kubectl port-forward service/hms-backend-service 8081:8081 -n hms &"
+          - ""
+          - "2. Access the application:"
+          - "   Frontend: http://localhost:3000"
+          - "   Backend: http://localhost:8081"
+          - "=========================================="
+
