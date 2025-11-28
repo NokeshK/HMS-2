@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   User,
@@ -17,7 +18,8 @@ import {
 import { PrimaryAppBar } from "../Layout/PrimaryAppBar.jsx";
 
 export function RegisterForm({ onNavigateToLogin }) {
-  const { register, isLoading } = useAuth();
+  const { register, login, isLoading } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -62,11 +64,25 @@ export function RegisterForm({ onNavigateToLogin }) {
       return;
     }
 
-    const success = await register(formData);
-    if (success) {
-      setSuccess("Registration successful! You can now login.");
+    const result = await register(formData);
+    if (result.success) {
+      setSuccess("Registration successful! Logging you in...");
+      // Auto-login after registration
+      try {
+        const loginResult = await login(formData.email, formData.password);
+        if (loginResult) {
+          // Navigate to dashboard (will show correct dashboard based on role)
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 1000);
+        } else {
+          setError("Registration successful but login failed. Please login manually.");
+        }
+      } catch (err) {
+        setError("Registration successful but login failed. Please login manually.");
+      }
     } else {
-      setError("Registration failed. Try again.");
+      setError(result.error || "Registration failed. Try again.");
     }
   };
 

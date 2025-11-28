@@ -9,6 +9,8 @@ export default defineConfig({
     postcss: './postcss.config.cjs'
   },
   server: {
+    host: '0.0.0.0', // Allow access from network
+    port: 5173,
     proxy: {
       '/api': {
         target: process.env.VITE_API_URL || 'http://localhost:8081',

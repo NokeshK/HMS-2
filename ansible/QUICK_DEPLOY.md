@@ -71,3 +71,4 @@ The playbook can be updated to use `kubectl` commands instead of the Kubernetes 
    ansible-playbook playbooks/deploy-k8s.yml
    ```
 
+

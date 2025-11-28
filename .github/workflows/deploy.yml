@@ -11,6 +11,8 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    env:
+      VITE_BASE_PATH: /HMS-2/
 
     steps:
     - name: Checkout

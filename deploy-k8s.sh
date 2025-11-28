@@ -58,3 +58,4 @@ echo -e "kubectl logs -f deployment/hms-backend -n hms"
 echo -e "kubectl logs -f deployment/hms-frontend -n hms"
 
 
+

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiPostJSON } from '../../utils/api';
 import PropTypes from 'prop-types';
 import { X, Calendar, Clock, User, Zap, MessageSquare, Video, Star, ChevronRight, Loader } from 'lucide-react';
 
@@ -69,7 +70,6 @@ export function BookAppointmentModal({ onClose }) {
     setError('');
 
     try {
-      const token = localStorage.getItem('token');
       const appointmentData = {
         doctorId: selectedDoctor.id,
         date: formData.date,
@@ -77,27 +77,13 @@ export function BookAppointmentModal({ onClose }) {
         reason: formData.reason || 'General consultation'
       };
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/appointments/book`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(appointmentData),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Appointment booked successfully:', result);
-        onClose();
-        // You might want to show a success message or refresh the appointments list
-        window.location.reload(); // Simple way to refresh and show new appointment
-      } else {
-        const errorData = await response.text();
-        setError('Failed to book appointment: ' + errorData);
-      }
+      const result = await apiPostJSON('/api/appointments/book', appointmentData);
+      console.log('Appointment booked successfully:', result);
+      onClose();
+      // You might want to show a success message or refresh the appointments list
+      window.location.reload(); // Simple way to refresh and show new appointment
     } catch (err) {
-      setError('Network error while booking appointment');
+      setError('Failed to book appointment: ' + (err.message || 'Network error'));
       console.error('Error booking appointment:', err);
     } finally {
       setBooking(false);

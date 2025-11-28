@@ -65,6 +65,7 @@ function AuthRoute({ children }) {
   }
 
   if (user) {
+    // Redirect to dashboard based on role
     return <Navigate to="/dashboard" replace />;
   }
 

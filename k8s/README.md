@@ -179,3 +179,4 @@ kubectl delete namespace hms
 - Health checks are configured for all services.
 
 
+

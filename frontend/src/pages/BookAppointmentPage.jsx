@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, User, Video, MessageSquare, Star, ChevronLeft, Loader } from 'lucide-react';
 import { BookAppointmentModal } from '../components/Modals/BookAppointmentModal.jsx';
+import { apiGetJSON } from '../utils/api';
 
 export function BookAppointmentPage() {
   const navigate = useNavigate();
@@ -15,21 +16,10 @@ export function BookAppointmentPage() {
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/doctors`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (response.ok) {
-          const doctorsData = await response.json();
-          setDoctors(doctorsData);
-        } else {
-          setError('Failed to load doctors');
-        }
+        const doctorsData = await apiGetJSON('/api/doctors');
+        setDoctors(doctorsData);
       } catch (err) {
-        setError('Network error while loading doctors');
+        setError('Failed to load doctors');
         console.error('Error fetching doctors:', err);
       } finally {
         setLoading(false);

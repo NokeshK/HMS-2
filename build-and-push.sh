@@ -49,3 +49,4 @@ echo -e "${BLUE}Backend: ${DOCKER_USERNAME}/hms-backend:latest${NC}"
 echo -e "${BLUE}Frontend: ${DOCKER_USERNAME}/hms-frontend:latest${NC}"
 
 
+

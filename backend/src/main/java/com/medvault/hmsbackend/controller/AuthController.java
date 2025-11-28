@@ -9,9 +9,6 @@ import com.medvault.hmsbackend.service.JwtService;
 import com.medvault.hmsbackend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -29,9 +26,6 @@ import java.util.logging.Logger;
 public class AuthController {
 
     private static final Logger logger = Logger.getLogger(AuthController.class.getName());
-
-    @Autowired
-    private AuthenticationManager authenticationManager;
 
     @Autowired
     private UserService userService;
@@ -170,7 +164,14 @@ public class AuthController {
             User user = userService.findByEmail(email).orElse(null);
             if (user != null && jwtService.isTokenValid(jwt, new org.springframework.security.core.userdetails.User(
                     user.getEmail(), user.getPassword(), new java.util.ArrayList<>()))) {
-                return ResponseEntity.ok(Map.of("valid", true, "user", user));
+                // Create user response with lowercase role
+                Map<String, Object> userResponse = new HashMap<>();
+                userResponse.put("id", user.getId());
+                userResponse.put("email", user.getEmail());
+                userResponse.put("name", user.getName());
+                userResponse.put("role", user.getRole().toLowerCase());
+                
+                return ResponseEntity.ok(Map.of("valid", true, "user", userResponse));
             }
             return ResponseEntity.status(401).body(Map.of("valid", false));
         } catch (Exception e) {

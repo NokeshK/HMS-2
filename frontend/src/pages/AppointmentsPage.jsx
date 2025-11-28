@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Calendar, Clock, User, MapPin, Phone, Video, MessageSquare, Plus } from 'lucide-react';
+import { apiGetJSON, apiPutJSON } from '../utils/api';
 
 export function AppointmentsPage() {
   const navigate = useNavigate();
@@ -15,32 +16,21 @@ export function AppointmentsPage() {
 
   const fetchAppointments = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/appointments/patient`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        // Transform data to match expected format
-        const transformedAppointments = data.map(apt => ({
-          id: apt.id,
-          patientId: apt.patient.id,
-          patientName: apt.patient.name,
-          doctorId: apt.doctor.id,
-          doctorName: apt.doctor.name,
-          date: apt.date,
-          time: apt.time,
-          status: apt.status.toLowerCase(),
-          reason: apt.reason,
-          notes: apt.notes,
-        }));
-        setAppointments(transformedAppointments);
-      } else {
-        setError('Failed to fetch appointments');
-      }
+      const data = await apiGetJSON('/api/appointments/patient');
+      // Transform data to match expected format
+      const transformedAppointments = data.map(apt => ({
+        id: apt.id,
+        patientId: apt.patient.id,
+        patientName: apt.patient.name,
+        doctorId: apt.doctor.id,
+        doctorName: apt.doctor.name,
+        date: apt.date,
+        time: apt.time,
+        status: apt.status.toLowerCase(),
+        reason: apt.reason,
+        notes: apt.notes,
+      }));
+      setAppointments(transformedAppointments);
     } catch (err) {
       setError('Network error');
     } finally {
@@ -50,26 +40,13 @@ export function AppointmentsPage() {
 
   const handleCancelAppointment = async (appointmentId) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/appointments/${appointmentId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: 'CANCELLED' }),
-      });
-
-      if (response.ok) {
-        // Update local state
-        setAppointments(prev => prev.map(apt =>
-          apt.id === appointmentId ? { ...apt, status: 'cancelled' } : apt
-        ));
-      } else {
-        setError('Failed to cancel appointment');
-      }
+      await apiPutJSON(`/api/appointments/${appointmentId}/status`, { status: 'CANCELLED' });
+      // Update local state
+      setAppointments(prev => prev.map(apt =>
+        apt.id === appointmentId ? { ...apt, status: 'cancelled' } : apt
+      ));
     } catch (err) {
-      setError('Network error');
+      setError('Failed to cancel appointment');
     }
   };
 

@@ -12,8 +12,8 @@ export function Layout({ children }) {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Hide sidebar for doctor role
-  const shouldShowSidebar = user?.role !== 'doctor';
+  // Hide sidebar for doctor and patient roles
+  const shouldShowSidebar = user?.role !== 'doctor' && user?.role !== 'patient';
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
@@ -35,12 +35,21 @@ export function Layout({ children }) {
               : 'lg:ml-64'
             : 'ml-0'
         }`}>
-          <Navbar onMenuClick={() => shouldShowSidebar ? setSidebarOpen(true) : null} />
+          {user?.role !== 'patient' && (
+            <Navbar onMenuClick={() => shouldShowSidebar ? setSidebarOpen(true) : null} />
+          )}
 
-          <main className="flex-1 px-4 py-4 lg:px-6 overflow-y-auto" style={{ height: 'calc(100vh - 64px - 80px)' }}>
-            <div className="max-w-7xl mx-auto">
-              {children}
-            </div>
+          <main 
+            className={`flex-1 ${user?.role === 'patient' ? 'p-0' : 'px-4 py-4 lg:px-6'} overflow-y-auto`}
+            style={user?.role === 'patient' ? {} : { height: 'calc(100vh - 64px - 80px)' }}
+          >
+            {user?.role === 'patient' ? (
+              children
+            ) : (
+              <div className="max-w-7xl mx-auto">
+                {children}
+              </div>
+            )}
           </main>
         </div>
       </div>
