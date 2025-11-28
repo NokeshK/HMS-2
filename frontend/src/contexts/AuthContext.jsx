@@ -62,6 +62,8 @@ export function AuthProvider({ children }) {
   const logout = () => {
     setUser(null);
     apiLogout();
+    // Redirect to home page after logout
+    window.location.href = '/';
   };
 
   return (

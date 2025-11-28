@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Menu, Bell, Moon, Sun, LogOut } from 'lucide-react';
@@ -7,7 +8,13 @@ import { Menu, Bell, Moon, Sun, LogOut } from 'lucide-react';
 export function Navbar({ onMenuClick }) {
   const { user, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
+  const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <header className="bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 sticky top-0 z-20">
@@ -57,7 +64,7 @@ export function Navbar({ onMenuClick }) {
 
           {/* Logout */}
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 ease-in-out transform hover:scale-110"
           >
             <LogOut size={20} />

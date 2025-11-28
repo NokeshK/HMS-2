@@ -38,7 +38,7 @@ import HeartBeatLogo from '../Brand/HeartBeatLogo';
 
 export function PatientDashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [patientData, setPatientData] = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
@@ -106,8 +106,8 @@ export function PatientDashboard() {
     } catch (error) {
       console.error('Error fetching prescriptions:', error);
       setPrescriptions([
-        {
-          id: '1',
+    {
+      id: '1',
           prescriptionId: 'PRES-000001',
           medicines: [
             { name: 'Lisinopril 10mg', dosage: '10mg', frequency: 'Once daily' },
@@ -304,10 +304,10 @@ export function PatientDashboard() {
             {notifications.length > 0 && (
               <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
             )}
-          </button>
+        </button>
 
           <div className="relative">
-            <button
+        <button
               onClick={() => setShowDropdown(!showDropdown)}
               className="flex items-center space-x-3 hover:bg-gray-100 rounded-lg px-3 py-2 transition-colors"
             >
@@ -316,26 +316,26 @@ export function PatientDashboard() {
               </div>
               <span className="font-medium text-gray-900">{patient.name}</span>
               <ChevronDown size={18} className="text-gray-600" />
-            </button>
+         </button>
 
             {showDropdown && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                <button
+        <button
                   onClick={() => navigate('/settings')}
                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
+        >
                   Profile Settings
-                </button>
-                <button
+         </button>
+        <button
                   onClick={() => {
-                    localStorage.removeItem('token');
-                    navigate('/login');
+                    logout();
+                    navigate('/');
                   }}
                   className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
                 >
                   Logout
-                </button>
-              </div>
+         </button>
+       </div>
             )}
           </div>
         </div>
@@ -345,11 +345,11 @@ export function PatientDashboard() {
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-6">
         {/* 1. PATIENT OVERVIEW CARD */}
         <div className="bg-white rounded-[20px] shadow-md p-[30px] border border-gray-100">
-          <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between">
             <div className="flex items-center space-x-6">
               <div className="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold border-4 border-white shadow-lg">
                 {patient.name.charAt(0).toUpperCase()}
-              </div>
+                      </div>
               <div className="space-y-2">
                 <h2 className="text-2xl font-bold text-gray-900">{patient.name}</h2>
                 <p className="text-sm text-gray-500">Patient ID: <span className="font-semibold text-gray-700">{patient.mrn}</span></p>
@@ -359,13 +359,13 @@ export function PatientDashboard() {
                   <span>Gender: {patient.gender}</span>
                   <span>•</span>
                   <span>Blood Group: <span className="font-semibold text-red-600">{patient.bloodGroup}</span></span>
-                </div>
+                    </div>
                 <p className="text-sm text-gray-600">Contact: {patient.contactNumber}</p>
                 <div className="flex items-center space-x-2 mt-2">
                   <Shield size={16} className="text-blue-600" />
                   <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
                     {patient.insuranceProvider}
-                  </span>
+                      </span>
                 </div>
               </div>
             </div>
@@ -402,9 +402,9 @@ export function PatientDashboard() {
                 <p className="text-2xl font-bold text-gray-900">{activePrescriptions}</p>
                 <p className="text-sm text-gray-500">Active Prescriptions</p>
               </div>
-            </div>
-          </div>
-
+                    </div>
+                  </div>
+                  
           <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
@@ -415,17 +415,17 @@ export function PatientDashboard() {
                 <p className="text-sm text-gray-500">Medical Reports</p>
               </div>
             </div>
-          </div>
+                        </div>
 
           <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
                 <Receipt size={24} className="text-yellow-600" />
-              </div>
+                    </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">{pendingPayments}</p>
                 <p className="text-sm text-gray-500">Pending Payments</p>
-              </div>
+                </div>
             </div>
           </div>
         </div>
@@ -502,7 +502,7 @@ export function PatientDashboard() {
                 <div className="flex items-center space-x-4 mb-4">
                   <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center border-2 border-white shadow">
                     <Stethoscope size={24} className="text-blue-600" />
-                  </div>
+            </div>
                   <div>
                     <h3 className="font-bold text-gray-900">{doctor.name}</h3>
                     <p className="text-sm text-blue-600">{doctor.specialization}</p>
@@ -512,25 +512,25 @@ export function PatientDashboard() {
                   <p><span className="font-medium">Qualifications:</span> {doctor.qualifications}</p>
                   <p><span className="font-medium">Experience:</span> {doctor.experience}</p>
                   <p><span className="font-medium">Consultation Fee:</span> ₹{doctor.consultationFee}</p>
-                </div>
-                <button
+              </div>
+              <button
                   onClick={() => navigate('/book-appointment', { state: { doctorId: doctor.id } })}
                   className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
+              >
                   Book Appointment
-                </button>
+              </button>
               </div>
             ))}
+            </div>
           </div>
-        </div>
 
         {/* 5. PRESCRIPTIONS - Official Pharmacy Format */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="bg-[#E3F2FD] px-6 py-4 border-b">
             <h2 className="text-xl font-semibold text-gray-900">Prescriptions</h2>
-          </div>
+            </div>
           <div className="p-6 space-y-4">
-            {prescriptions.map((prescription) => (
+                {prescriptions.map((prescription) => (
               <div key={prescription.id} className="border border-gray-200 rounded-lg p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -541,7 +541,7 @@ export function PatientDashboard() {
                     <p className="text-sm text-gray-500">Issue Date</p>
                     <p className="font-semibold text-gray-900">{prescription.issueDate}</p>
                   </div>
-                </div>
+                    </div>
                 <div className="mb-4">
                   <p className="text-sm font-medium text-gray-700 mb-2">Medicines:</p>
                   <div className="space-y-2">
@@ -551,11 +551,11 @@ export function PatientDashboard() {
                           <p className="font-medium text-gray-900">{med.name || med}</p>
                           <p className="text-sm text-gray-600">
                             {med.dosage && `${med.dosage} • `}{med.frequency || 'As prescribed'}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                      </p>
+                    </div>
                   </div>
+                ))}
+              </div>
                 </div>
                 <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                   <p className="text-sm text-gray-600">Prescribed by: <span className="font-medium">{prescription.doctorName}</span></p>
@@ -566,8 +566,8 @@ export function PatientDashboard() {
                 </div>
               </div>
             ))}
+            </div>
           </div>
-        </div>
 
         {/* 6. MEDICAL REPORTS - Official Lab Format */}
         <div className="bg-white rounded-2xl shadow-sm p-6">
@@ -638,13 +638,13 @@ export function PatientDashboard() {
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
+              </div>
+            </div>
 
         {/* 8. MEDICATION REMINDER */}
         <div className="bg-white rounded-2xl shadow-sm p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Medication Reminder</h2>
-          <div className="space-y-3">
+              <div className="space-y-3">
             {medicationReminders.map((reminder) => (
               <div key={reminder.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
                 <div className="flex items-center space-x-4">
@@ -761,8 +761,8 @@ export function PatientDashboard() {
                 )}
               </tbody>
             </table>
-          </div>
         </div>
+      </div>
 
         {/* 11. INSURANCE & POLICY DETAILS */}
         {insurance && (
